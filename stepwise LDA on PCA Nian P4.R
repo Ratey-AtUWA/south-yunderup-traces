@@ -1,0 +1,91 @@
+require(MASS) # required for LDA procedure
+require(klaR) # required for stepwise refinement of LDA
+require(rgr) # required for additive-logratio (alr) multivariate transformation
+#
+# create a data subset for the robust LDA by choosing relevant columns from default data
+# not including variables with lots of na, replacing fe.oes with fe.ms as they are 
+#    well correlated (pearsons r 0.99) and fe.oes has many na values
+data2<-as.matrix(na.omit(cbind(nx.clr[c("Ba.ms", "Cd.ms", "Co.ms", "Cr.ms", "Cu.ms", "Fe.ms",
+                                        "Mn.ms", "Ni.oes", "Pb.ms", "Rb.ms", "Sr.ms", 
+                                        "Th.ms", "Ti.ms", "U.ms",  "V.ms",  "Zn.ms", "REE.ms")])))
+data2f <- na.omit(cbind(nx.clr[c("Type.S3","Redox","Site","Depth.cm","Ba.ms", "Cd.ms", "Co.ms", 
+                                 "Cr.ms", "Cu.ms", "Fe.ms","Mn.ms", "Ni.oes","Pb.ms", 
+                                 "Rb.ms","Sr.ms","Th.ms", "Ti.ms","U.ms","V.ms","Zn.ms","REE.ms")]))
+data2.alr <- alr(data2, j=4)
+colnames(data2.alr) <- c("Ba", "Cd", "Co", "Cu", "Fe", "Mn", "Ni","Pb", "Rb", 
+                         "Sr","Th", "Ti", "U",  "V",  "Zn", "REE")
+# colnames(data2.alr) <- substr(colnames(data2.alr),1,str_locate(colnames(data2.alr),"s")[,1]-1)
+data2f.alr <- cbind(data2f[,1:4],data2.alr[,1:ncol(data2.alr)])
+summary(data2f.alr)
+str(data2f.alr)
+# specify default data object
+attach(data2f.alr)
+#
+stepwise.lda <- stepclass(formula = Type.S3~Ba+ Cd+ Co+ Cu+ Fe+ Mn+ Ni+ Pb+ Rb+  
+            Sr+ Th+ Ti+ U+ V+ Zn+ REE, data=data2f.alr, method="lda", improvement=0.002, 
+            direction="backward", criterion="AC")
+summary(stepwise.lda)
+#
+directs <- c("backward","forward","both")
+minimp <- c(0.001,0.002,0.003,0.005,0.01,0.02,0.03,0.05)
+crits=c("CR","AC","AS","CF","CFvec")
+sink(file="LDA2PCA_maxvar2.txt", type="output")
+cat("Sort order, Direction of steps",",", "Improvement tolerance",",","Improvement Criterion",",",
+    "Final predictor variables",",","Criterion value\n")
+for (k in 1:3) {
+  for (j in 1:8) {
+    for (i in 1:5){
+    # cat("\n",j,i,"Stepwise LDA, min. improvement tolerance =",minimp[j], ", Direction = both,
+    #   Criterion = ", crits[i],"\n")
+    stepwise.lda <- stepclass(formula = Type.S3~PC1+ PC2+ PC3+ PC4+ PC5, data=pc2ld, output=F, 
+                              prior=rep(1,nlevels(nx.clr$Type.S3))/nlevels(nx.clr$Type.S3), method="lda",
+                              improvement=minimp[j], direction=directs[k], criterion=crits[i])
+    # print(stepwise.lda)
+    finvars <- as.character(stepwise.lda$formula[3]) 
+    finperf <- as.numeric(stepwise.lda$process[nrow(stepwise.lda$process),4])
+    perfmeas <- stepwise.lda$performance.measure
+    cat(((k*100)+((j*10)+i)),",",directs[k],",",minimp[j],",",perfmeas," (",crits[i],") ",finvars,",",finperf,"\n")
+    }
+  }
+}
+# end nested loop
+sink() # close output file
+#
+# par(mfrow=c(1,1), mar=c(5,5,2,2), oma=c(0,0,0,0), lend=2, ljoin=1, font.lab=2)
+biplot(PC.nx.clr, choices=c(2,4), col=c("transparent","black"), cex=c(0.2,1.0),
+       cex.lab=1.5,cex.axis=1.4, expand=1., xlab="PC3 (7.3% of variance)",
+       ylab="PC4 (5.7% of variance)", family="nar") # , font.lab=2, xlim=c(-0.25,0.25), ylim=c(-0.25,0.25)
+# abline(v=0, lty=1, col="grey85")
+# abline(h=0, lty=1, col="grey85")
+sf0 <- 1.0
+points(PC.nx.clr$x[,2]*sf0,PC.nx.clr$x[,4]*sf0,pch=c(17,1,10)[nx.clr$Type.S3],
+       col=c("firebrick","#226422","darkgoldenrod")[nx.clr$Type.S3], cex=1.5, lwd=c(2,2)[nx.clr$Type.S3])
+legend("bottomright", ncol=1, legend=levels(nx.clr$Type.S3), pch=c(17,1,10), 
+       col=c("firebrick","#226422","darkgoldenrod"), cex=1., pt.cex=1.5, pt.lwd=c(2,2,2),
+       bty="o", box.col="grey", inset=0.01, y.intersp=0.95, title=expression(bold("Type"))) ### 
+rm(sf0)
+box()
+#
+stepwise.lda$call
+stepwise.lda$method
+stepwise.lda$model
+stepwise.lda$performance.measure
+stepwise.lda$process
+stepwise.lda$result.pm
+stepwise.lda$runtime
+stepwise.lda$start.variables
+#
+# Details [for criterion=c("CR","AC","AS","CF","CFvec")]
+# The correctness rate is the estimator for the correctness of a classification rule (1-error rate).
+# The accuracy is based on the euclidean distances between (scaled) membership vectors and the vectors representing the true class corner. These distances are standardized so that a measure of 1 is achieved if all vectors lie in the correct corners and 0 if they all lie in the center.
+# Analougously, the ability to seperate is based on the distances between (scaled) membership vectors and the vector representing the corresponding assigned class corner.
+# The confidence is the mean of the membership values of the assigned classes.
+# 
+# Value
+# A list with elements:
+#   
+# CR	Correctness Rate
+# AC	Accuracy
+# AS	Ability to Seperate
+# CF	Confidence
+# CFvec	Confidence for each (true) class

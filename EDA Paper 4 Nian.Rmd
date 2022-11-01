@@ -1,0 +1,435 @@
+---
+title: "Nian Paper_4 EDA"
+output: 
+  pdf_document: 
+    fig_height: 7
+    fig_width: 7
+    latex_engine: xelatex
+    highlight: espresso
+header-includes:
+  \usepackage{newcent}
+  \renewcommand{\familydefault}{\rmdefault}
+---
+
+### Exploratory data analysis
+
+## Trace element geochemistry in acidified estuarine dredge spoil and associated sulfidic drain sediments, South Yunderup, Western Australia
+
+Nian Xu, PhD Paper 4
+
+UWA School of Agriculture and Environment
+
+First: Run a Pearson correlation matrix on the centred-logratio transformed concentrations, including all possible observations (use="pairwise.complete.obs")
+
+```{r}
+require(RcmdrMisc)
+# pearson correlation matrix ####
+rcorr.adjust(nx.clr[45:65], type = "pearson", use="pairwise.complete.obs")
+```
+
+Next: scatter plot matrix on centred logratio transformed trace element 
+concentrations
+```{r fig.height=12, fig.width=12}
+spm(~As+Ba+Cd+Co+Cr+Cu+Fe+Mn+Mo+Ni+P+Pb+S+Sr+Th+Ti+U+V+Zn+REE | Type, data=nx.clr, smooth=F,  
+    col=c("sienna", "darkcyan",2), pch=c(16,2,3), cex.lab=1.5)
+```
+Next: scatter plot matrix on SELECTED centred-logratio transformed trace element 
+concentrations
+```{r fig.height=9, fig.width=9}
+spm(~Cr+Fe+P+Pb+Sr+Th+Ti+V | Type.S3, data=nx.clr, smooth=F, 
+    col=c("firebrick","#006699","#660099"), pch=c(1,15,0), cex.lab=1.5)
+```
+Next: scatter plot matrix on common contaminant elements, Fe, P, and S 
+using clr-transformed concentrations
+```{r fig.height=12, fig.width=12}
+spm(~As+Cd+Cr+Cu+Fe+Mn+Mo+Ni+P+Pb+S+Zn | Type.S3, data=nx.clr, smooth=F, 
+    col=c("firebrick","#006699","#6600b0"), pch=c(1,15,0), cex.lab=1.5)
+```
+
+Next: scatter plot matrix: Focus on REEs using clr-transformed concentrations
+
+```{r fig.height=12, fig.width=12, message=FALSE, warning=FALSE}
+spm(~Cd+Cr+Cu+Pb+Rb+Sr+Th+V+Zn+REE+Fe+P+S | Type.S3, data=nx.clr, diagonal="boxplot", smooth=F, 
+    col=c("orangered2","#0088BB","saddlebrown"), pch=c(1,15,0), cex.lab=1.5)
+```
+#
+Next: scatter plot matrix on $log_{10}$- transformed trace element concentrations
+
+```{r}
+spm(~As.log+Ba.log+Cd.log+Co.log+Cr.log+Cu.log+Fe.log+Mn.log+P.log+Pb.log+S.log+Sr.log+Th.log+
+      Ti.log+U.log+V.log+Zn.log+REE.log | Type, data=nx.clr, smooth=F, span=F, col=c("sienna","blue3",2),
+    pch=c(16,2,3), cex.lab=1.5)
+```
+
+
+#
+Compare scatter plots of REE vs predictors - closed vs clr-transformed
+```{r}
+par(mfrow=c(2,5), mar=c(3,0,1.,0), oma=c(0,4,0,1), mgp=c(1.4,0.4,0.0), lend=2, ljoin=1, 
+    font.lab=2, cex.axis=.8, cex.lab=.9, cex=1., lwd=1)
+palette(c("black","sienna","darkolivegreen","grey92"))
+# closed
+plot(nx.clr$Fe.oes, nx.clr$REE.ms, log="xy", pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     xlab=expression(bold(paste(Fe[closed]," (mg/kg)"))), lwd=2)
+mtext(side=2, line=1.4, expression(bold(paste(Sigma,REE[closed]," (mg/kg)"))), cex=.8)
+plot(nx.clr$P.oes, nx.clr$REE.ms, log="xy", yaxt="n", pch=c(2,15)[nx.clr$Type],
+     col=c(2,3)[nx.clr$Type], xlab=expression(bold(paste(P[closed]," (mg/kg)"))), lwd=2)
+plot(nx.clr$S.oes, nx.clr$REE.ms, log="xy", yaxt="n", pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     xlab=expression(bold(paste(S[closed]," (mg/kg)"))), lwd=2,
+     ylab=expression(bold(paste(Sigma,REE[closed]," (mg/kg)"))))
+plot(nx.clr$S.oes, nx.clr$REE.ms, type="n", ann=F, xaxt="n", yaxt="n", bty="n")
+legend("topleft",legend=c("Dredge\nspoil","Sediment"), pch=c(2,15), col=c(2,3), bty="n",
+       inset=0.025, cex=0.65, pt.lwd=2, box.col=4, box.lwd=2, pt.cex=0.8)
+plot(nx.clr$Fe.oes, nx.clr$P.oes, log="xy", pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     lwd=2, xlab=expression(bold(paste(Fe[closed]," (mg/kg)"))),
+     ylab=expression(bold(paste(P[closed]," (mg/kg)"))))
+mtext(side=2, line=1.4, expression(bold(paste(Sigma,P[closed]," (mg/kg)"))), cex=.8)
+# clr
+plot(nx.clr$Fe, nx.clr$REE, pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     xlab=expression(bold(Fe[clr-transformed])), lwd=2)
+mtext(side=2, line=1.4, expression(bold(paste(Sigma,REE[clr-transformed]))), cex=.8)
+plot(nx.clr$P, nx.clr$REE, yaxt="n", pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     xlab=expression(bold(P[clr-transformed])), lwd=2)
+plot(nx.clr$S, nx.clr$REE, yaxt="n", pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     xlab=expression(bold(S[clr-transformed])), lwd=2, ylab=expression(bold(paste(Sigma,REE[clr-transformed]))))
+plot(nx.clr$S, nx.clr$REE, type="n", ann=F, xaxt="n", yaxt="n", bty="n")
+legend("topleft",legend=c("Dredge\nspoil","Sediment"), pch=c(2,15), col=c(2,3), bty="n",
+       inset=0.025, cex=0.8, pt.lwd=2, box.col=4, box.lwd=2)
+plot(nx.clr$Fe, nx.clr$P, pch=c(2,15)[nx.clr$Type], col=c(2,3)[nx.clr$Type],
+     xlab=expression(bold(Fe[clr-transformed])), ylab=expression(bold(P[clr-transformed])),
+     lwd=2)
+palette('default')
+```
+Next: boxplots by sample type
+```{r}
+par(mfrow=c(3,6), mar=c(3.,3.,1,1), mgp=c(1.3,0.2,0.0), tcl = 0.2, font.lab=2, cex.axis=1, cex.lab=1, family='sans')
+boxplot(As.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Ba.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Cd.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Co.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Cr.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Cu.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Fe.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Mn.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Ni.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(P.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Pb.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Sr.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Th.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Ti.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(U.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(V.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(Zn.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+boxplot(REE.log~Type, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("DS","Sed"))
+```
+#
+Next: boxplots by redox status
+```{r message=FALSE, warning=FALSE}
+par(mfrow=c(3,6), mar=c(3.,3.,1,1), mgp=c(1.3,0.3,0.0), tcl=0.2, font.lab=2, cex.axis=1, cex.lab=1)
+boxplot(As.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Ba.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Cd.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Co.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Cr.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Cu.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Fe.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Mn.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Ni.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(P.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Pb.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Sr.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Th.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Ti.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(U.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(V.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(Zn.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+boxplot(REE.log~Redox, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0, names=c("Ox","Red"))
+```
+#
+### Non-parametric means comparisons
+Kruskal Wallis non-parametric means comparisons performed due to the inability to achieve normality with log- or power-transformation. Centered-logratio (clr) transformed variables were not used due to the number of missing data.
+
+\begin{tabular}{|c|}
+\hline
+Output is in comma-separated format.]\\
+\hline
+\end{tabular}
+
+```{r}
+require(car)
+names.of.cols <- names(nx.clr)
+{cat("Kruskal-Wallis tests by Redox groups\n")
+  cat("=============================================\n")
+  cat("Variable",",","Kruskal-Wallis Chi-squared",",","p-value","\n")}
+for ( i in 15:43){
+  kwt0 <- kruskal.test(nx.clr[,i]~Redox, data=nx.clr) # powerTransform(nx.clr[,i])
+  cat(names.of.cols[i], ",", signif(kwt0$statistic,4), ",", signif(kwt0$p.value,4),"\n")
+}
+#
+# remove temporary objects
+rm(names.of.cols)
+rm(kwt0)
+rm(i)
+#
+```
+#
+Next: boxplots by Site (set 1)
+```{r fig.height=6, fig.width=12,  message=FALSE, warning=FALSE}
+require(car)
+windowsFonts(nar = windowsFont("Ubuntu Condensed"))
+palette(c("black","#DDFFDD","#FFDDBB"))
+par(mfrow=c(3,3), mar=c(4.,4.,1,1), mgp=c(1.3,0.2,0.0), tcl = 0.2, font.lab=2, cex.axis=1, cex.lab=1.4, family='nar')
+boxplot(As.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Ba.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Cd.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Co.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Cr.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Cu.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Fe.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Mn.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Ni.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+palette('default')
+```
+#
+Next: boxplots by Site [set 2]
+```{r fig.height=6, fig.width=12,  message=FALSE, warning=FALSE}
+require(car)
+windowsFonts(nar = windowsFont("Ubuntu Condensed"))
+palette(c("black","#DDFFDD","#FFDDBB"))
+par(mfrow=c(3,3), mar=c(4.,4.,1,1), mgp=c(1.3,0.2,0.0), tcl=0.2, font.lab=2, cex.axis=1, cex.lab=1.5, family='nar')
+boxplot(P.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Pb.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Sr.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Th.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Ti.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(U.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(V.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(Zn.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+boxplot(REE.log~Site, data=nx.clr, notch=TRUE, varwidth=TRUE, cex=1.0, id.n=0,
+        col=c(2,2,2,2,2,3,3,3,3,3,3,3))
+palette('default')
+```
+#
+Next: Run a principal components analysis on the clr-transformed data, 
+output component loadings and observation scores, and plot the results after the next code chunks
+```{r}
+PC.nx.clr<-prcomp(~As +Ba +Cd +Co +Cr +Cu +Fe +Mn
+  +Mo +Ni +P +Pb +Rb +S +Sr +Th +Ti +U +V +Zn +REE, 
+  scale=T, data=nx.clr) # , cor=TRUE
+cat("======= Component Loadings for PC1-PC5 =======\n")
+PC.nx.clr$rotation[,1:5]
+cat("\n======= Observation Scores for PC1-PC5 =======\n")
+PC.nx.clr$x[,1:5]
+cat("\n======= Summary of Principal Components  =======\n")
+summary(PC.nx.clr)
+cat("\n======= Eigenvalues (variances) for the first 8 components  =======\n")
+PC.nx.clr$sdev[1:8]^2 # first eight (8) eigenvalues
+```
+
+Next: Plot the pca scree plot
+```{r}
+par(mar = c(4,4,1,1), mgp = c(2, 0.5, 0), tcl = -0.25, font.lab = 2)
+plot(PC.nx.clr, main = "")
+axis(1, at = seq(0.7,11.5, length.out = 10), labels = seq(1,10,1), mgp = c(1.5,0.5,0), tcl=-0.25)
+mtext("Principal component", side = 1, line = 2, font = 2)
+```
+
+Next: Plotting the PCA data by Type
+```{r fig.height=6, fig.width=9}
+par(mfrow=c(1,2), mar=c(5,4,2,1), mgp=c(2.2,0.7,0), oma=c(0,0,0,0), lend=2, ljoin=1, font.lab=2)
+#
+pcv <- signif(as.numeric(summary(PC.nx.clr)$imp[2,]),3)*100
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,0.85),
+       cex.lab=1.2,cex.axis=1., expand=1., 
+       xlab=paste0("PC1 (",pcv[1],"% of variance)"),
+       ylab=paste0("PC2 (",pcv[2],"% of variance)"), 
+       xlim=c(-0.3,0.3), ylim=c(-0.2,0.2), family="sans") # , font.lab=2
+sf0 <- 1
+points(PC.nx.clr$x[,1]*sf0,PC.nx.clr$x[,2]*sf0,pch=c(3,1)[nx.clr$Type],
+       col=c("sienna","seagreen")[nx.clr$Type], cex=c(1,1.2)[nx.clr$Type], lwd=c(2,2)[nx.clr$Type])
+# dummy plot for legend
+plot(c(0,1),c(0,1), ann = F, xaxt="n", yaxt="n", type="n", bty="n")
+legend("left", ncol=1, legend=levels(nx.clr$Type),
+       pch=c(3,1), col=c("sienna","seagreen"), cex=1., pt.cex=c(1,1.2), pt.lwd=c(2,2),
+       bty="o", box.col="grey", inset=0.005, y.intersp=0.95, title=expression(bold("Type")))
+rm(list = c("pcv","sf0"))
+```
+
+Next: Plotting the PCA data by Type (splitting reduced/oxidised sediment)
+```{r fig.width=9, fig.height=5}
+par(mfrow=c(1,2), mar=c(5,4,2,1), mgp=c(2.2,0.4,0), oma=c(0,0,0,0), tcl = -0.2, lend=2, ljoin=1, font.lab=2)
+#
+pcv <- signif(as.numeric(summary(PC.nx.clr)$imp[2,]),3)*100
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,0.85),
+       cex.lab=1.2,cex.axis=1., expand=1., 
+       xlab=paste0("PC1 (",pcv[1],"% of variance)"),
+       ylab=paste0("PC2 (",pcv[2],"% of variance)"), 
+       xlim=c(-0.3,0.3), ylim=c(-0.2,0.2), family="sans") # , font.lab=2
+sf0 <- 1
+points(PC.nx.clr$x[,1]*sf0,PC.nx.clr$x[,2]*sf0,pch=c(3,1,15)[nx.clr$Type.S3],
+       col=c("firebrick","#006699","saddlebrown")[nx.clr$Type.S3], 
+       cex=c(1,1.2,1)[nx.clr$Type.S3],
+       lwd=c(2,2,1)[nx.clr$Type.S3])
+# dummy plot for legend
+plot(c(0,1),c(0,1), ann = F, xaxt="n", yaxt="n", type="n", bty="n")
+legend("left", ncol=1, legend=levels(nx.clr$Type.S3),
+       pch=c(3,1,15), col=c("firebrick","#006699","saddlebrown"), cex=1., pt.cex=c(1,1.2,1),
+       pt.lwd=c(2,2), bty="o", box.col="grey", inset=0.005, y.intersp=0.95,
+       title=expression(bold("Type")))
+rm(list = c("pcv","sf0"))
+```
+In the PCA biplot above, the component accounting for the largest proportion of multi-variance (PC1, 55.5%) has the largest positive loadings for a group of 5-6 elements: Th, Cr, V, Pb, Rb, [and Ti?]. PC1 is also influenced strongly by large negative loadings for REE, P, Cd, [& Sr, Zn]. The second-largest proportion of multiple variance (11.9%) is captured by PC2, with strong positive loadings for As and Ba, and strong negative loadings for Mn, Co, S, [& Ni, Cu]. 
+
+The observation scores for sediment are generally clustered in the negative PC1/positive PC2 quadrant of the biplot, associated with the REE-P-Cd-Sr-[As] element grouping. In contrast, the observation scores for dredge spoil tend towards positive PC1 values with a wider spread of PC2 values, associated with the Th-Cr-V-Pb-Rb grouping. Observation scores for oxidised sediment are spread across both sediment and dredge spoil groups, but with mainly positive PC2 scores.
+The clustering of sediment observation scores in PC1-PC2 space, in association with the REE-P-Cd-Sr element grouping, is consistent with the known enrichment of REE and P in reduced estuarine and drain sediments in the Peel-Harvey Estuarine System (*e.g.* Xu et al. 2019; Morgan et al., 2012). Similarly, the clustering of dredge spoil observation scores in PC1-PC2 space, in association with the Pb-Rb-Ti-Th-Cr element grouping, is consistent with residual concentration of elements such as Pb (as anglesite), Rb (residual from carbonate weathering), and Ti (as resistant minerals such as ilmenite and anatase), in the oxidised dredge material.
+
+### Next: Plotting the PCA results, grouping observations by redox
+
+```{r fig.height=5, fig.width=9}
+par(mfrow=c(1,2), mar=c(5,4,2,1), mgp=c(2.2,0.7,0), oma=c(0,0,0,0), lend=2, ljoin=1, font.lab=2)
+#
+pcv <- signif(as.numeric(summary(PC.nx.clr)$imp[2,]),3)*100
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,0.85),
+       cex.lab=1.2,cex.axis=1., expand=1., 
+       xlab=paste0("PC1 (",pcv[1],"% of variance)"),
+       ylab=paste0("PC2 (",pcv[2],"% of variance)"), 
+       xlim=c(-0.3,0.3), ylim=c(-0.18,0.18), family="sans") # , font.lab=2
+sf0 <- 1
+points(PC.nx.clr$x[,1]*sf0,PC.nx.clr$x[,2]*sf0,pch=c(4,0)[nx.clr$Redox],
+       col=c("tan3","seagreen")[nx.clr$Redox], cex=c(1.,1.)[nx.clr$Redox], 
+       lwd=c(2,2)[nx.clr$Redox])
+# dummy plot for legend
+plot(c(0,1),c(0,1), ann = F, xaxt="n", yaxt="n", type="n", bty = "n")
+legend("left", ncol=1, legend=levels(nx.clr$Redox),
+       pch=c(4,0), col=c("tan3","seagreen"), cex=1., pt.cex=c(1.0,1.0), pt.lwd=c(2,2),
+       bty="o", box.col="grey", inset=0.005, y.intersp=0.95, title=expression(bold("Redox"))) ### 
+rm(list = c("pcv","sf0"))
+```
+
+Next:  linear discriminant analysis (lda) using the trace element plus REE concentrations as predictors. Linear Discriminants are calculated on additive-logratio transformed data, with Cr as the reference element.
+
+```{r}
+require(MASS)
+########## prepare data for lda ##########
+require(rgr) # required for additive-logratio (alr) multivariate transformation
+require(stringr) # to manipulate variable names for prettier graphs
+#
+# create a data subset for the robust lda by choosing relevant columns from default data
+# not including variables with lots of na, replacing fe.oes with fe.ms as they are 
+#    well correlated (pearsons r 0.99) and fe.oes has many na values
+data2<-as.matrix(na.omit(cbind(nx.clr[c("Ba.ms", "Cd.ms", "Co.ms", "Cr.ms", "Cu.ms", "Fe.ms",
+                                        "Mn.ms", "Ni.oes", "Pb.ms", "Rb.ms", "Sr.ms", 
+                                        "Th.ms", "Ti.ms", "U.ms",  "V.ms",  "Zn.ms", "REE.ms")])))
+data2f <- na.omit(cbind(nx.clr[c("Type.S3","Redox","Site","Depth.cm","Ba.ms", "Cd.ms", "Co.ms", 
+                                 "Cr.ms", "Cu.ms", "Fe.ms","Mn.ms", "Ni.oes","Pb.ms", 
+                                 "Rb.ms","Sr.ms","Th.ms", "Ti.ms","U.ms","V.ms","Zn.ms","REE.ms")]))
+data2.alr <- alr(data2, j=4)
+colnames(data2.alr) <- c("Ba", "Cd", "Co", "Cu", "Fe", "Mn", "Ni","Pb", "Rb", 
+                         "Sr","Th", "Ti", "U",  "V",  "Zn", "REE")
+# colnames(data2.alr) <- substr(colnames(data2.alr),1,str_locate(colnames(data2.alr),"s")[,1]-1)
+data2f.alr <- cbind(data2f[,1:4],data2.alr[,1:ncol(data2.alr)])
+# summary(data2f.alr) # just in case we need it
+# str(data2f.alr) # just in case we need it
+# specify default data object
+#
+attach(data2f.alr)
+########## run the lda procedure ##########
+lda.nx.alr <- lda(formula = Type.S3~Ba+ Cd+ Co+ Cu+ Fe+ Mn+ Ni+ Pb+ Rb+  
+                    Sr+ Th+ Ti+ U+ V+ Zn+ REE, data=data2f.alr, prior=c(1,1,1)/3)
+prop = 100*lda.nx.alr$svd^2/sum(lda.nx.alr$svd^2)
+{cat("== Linear Discriminants: brief summary ==","\n")
+  cat("Discriminant 1 explains",signif(prop[1],3),"% of between groups variance\n")
+  cat("Discriminant 2 explains",signif(prop[2],3),"% of between groups variance\n")}
+# ls(lda.nx.alr)
+########## calculate lda 'observation scores' for training data ##########
+lda.nx.alr.values <- predict(lda.nx.alr, data2f.alr[c("Ba", "Cd", "Co", "Cu", "Fe", "Mn", "Ni","Pb", "Rb", 
+                                                      "Sr","Th", "Ti", "U",  "V",  "Zn", "REE")], na.rm=T)
+########## calculate lda predictions for new data if relevant - un-comment the code ##########
+# lda.nx.alr.pred <- predict(lda.nx.alr, data2f.alr.pred[c("As","Ba","Ca","Cd","Ce","Co","Cr","Cu","Fe",
+#   "Gd","K","La","Mg","Mn","Na","Ni","P","Pb","S","Sr","Ti","V","Y","Zn")], na.rm=T)
+
+```
+
+Next: plot histograms for the linear discriminant separations between groups \newline
+linear discriminant 1...
+
+```{r fig.height=6, fig.width=5}
+par(mgp=c(1.5,0.5,0))
+ldahist(data = lda.nx.alr.values$x[,1], g=data2f.alr$Type.S3, col="olivedrab3")
+mtext(side=1, line=4., text="Linear Discriminant 1", font=2)
+```
+#
+...and Next: linear discriminant 2:
+```{r fig.height=6, fig.width=5}
+par(mgp=c(1.5,0.7,0))
+ldahist(data = lda.nx.alr.values$x[,2], g=data2f.alr$Type.S3, col="olivedrab")
+mtext(side=1, line=4., text="Linear Discriminant 2", font=2)
+```
+#
+Next: output the weightings of predictors in each linear discriminant
+```{r}
+print(lda.nx.alr$scaling,digits=4) # COEFFICIENTS
+```
+
+**Next**: a set of 2 plots showing (1) predictor weightings in each lda dimension and (2) the separation of groups of observations (*i.e.* samples) in lda-space
+
+```{r fig.height=4.5, fig.width=9}
+palette(c("firebrick","#006699","saddlebrown"))
+par(mfrow=c(1,2),mar=c(4,4,1.5,1),lend=2,ljoin=1,font.lab=2,cex.main=.7, mgp=c(1.6,0.6,0),
+    font.main=1, family="sans")
+# plot variable weightings 
+plot(lda.nx.alr$scaling[,1],lda.nx.alr$scaling[,2],col="skyblue4",pch=5,lwd=1,cex=1.4,
+     cex.lab=1., cex.axis=1., xlab="Linear Discriminant [1]", 
+     ylab="Linear Discriminant [2]", xlim=c(-4,4), ylim=c(-2,3),
+     main="(a) Variable Coefficients, data = data2f.alr, Ref. element Cr", family="nar") #  
+mtext(text="  (a)", cex=1.2, side=3, line=-1,adj=0.98, family="sans")
+abline(v=0,col="grey",lty=2)
+abline(h=0,col="grey",lty=2)
+text(jitter(lda.nx.alr$scaling[,1], factor=10),jitter(lda.nx.alr$scaling[,2], factor=10),
+     labels=rownames(lda.nx.alr$scaling), pos=2, cex=.7, family="nar")
+legend("topleft",legend=c("Variables\n(predictors)"), bty="o", pch=c(5), col=c("skyblue4"), 
+       cex=.9, pt.cex=1.0, inset=0.01, box.col="grey90", bg="white", box.lwd=2)
+
+# plot 'training data' observation scores
+plot(lda.nx.alr.values$x[,1], lda.nx.alr.values$x[,2], 
+     col=c(1,2,3)[lda.nx.alr.values$class],
+     pch=c(1,15,0)[lda.nx.alr.values$class], lwd=c(2,1,2)[lda.nx.alr.values$class],
+     cex=c(1.4,1.2,1.1)[lda.nx.alr.values$class],cex.axis=1., cex.lab=1., 
+     xlab="Linear Discriminant [1]", ylab="Linear Discriminant [2]",
+     main="(b) Coordinates of observations, data = data2f.alr, Ref. element Cr", family="nar")
+mtext(text="  (b)", cex=1.2, side=3, line=-1,adj=0.98, family="sans")
+abline(v=0,col="grey",lty=2)
+abline(h=0,col="grey",lty=2)
+legend("topleft",legend=levels(data2f.alr$Type.S3), col=c(1,2,3), pch=c(1,15,0),
+       pt.lwd=c(2,1,2), title=expression(italic("Sample type")), bty="o", box.col="grey90", 
+       box.lwd=2, inset=0.01, pt.cex=c(1.4,1.2,1.1), cex=0.75, 
+       text.col=c(1,2,3), title.col="black", y.intersp=0.85, bg="white")
+palette('default')
+```
+In the plots above, the most influential predictors allowing best separation of Dredge spoil from {Sediment, Oxidised sediment} (i.e. Linear Discriminant 1) are Th and Sr. These are both elements likely to be liberated by acid sulfate soil oxidation (e.g. for Th see Bierwirth and Brodie, 2005). Separation of Sediment from Oxidised sediment is along the LD[2] axis, where the most influential elements are Pb (which forms insoluble sulfates) and a group comprising Ba-REE-Rb-U (we know about REE; U is less mobile in reducing conditions; Ba and Rb are residually enriched during carbonate weathering).
+
+## References
+
+Bierwirth, P.N. and Brodie, R.S. (2005). *Identifying Acid Sulfate Soil Hotspots from Airborne Gamma-Radiometric Data and GIS Analysis*. Australian Government Bureau of Rural Sciences, Canberra.
+
+Morgan, B., Rate, A.W., Burton, E.D. and Smirk, M. (2012). Enrichment and fractionation of rare earth elements in FeS-rich eutrophic estuarine sediments receiving acid sulfate soil drainage. *Chemical Geology*, **308-309**, 60-73, https://doi.org/10.1016/j.chemgeo.2012.03.012.
+
+Xu, N., Rate, A.W., Morgan, B., 2018. From source to sink: Rare-earth elements trace the legacy of sulfuric dredge spoils on estuarine sediments. *Science of The Total Environment*, **637-638**: 1537-1549, dhttps://doi.org/10.1016/j.scitotenv.2018.04.398.
+

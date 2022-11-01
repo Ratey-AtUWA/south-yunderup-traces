@@ -1,0 +1,213 @@
+---
+title: "Nian Paper_4 PCA-LDA-Final PCA"
+output: 
+  html_notebook: 
+    code_folding: hide
+    fig_height: 7
+    fig_width: 7
+    theme: readable
+    toc_depth: 1
+  word_document: 
+    fig_height: 7
+    fig_width: 7
+    highlight: espresso
+    keep_md: yes
+---
+<h4>Multivariate exploratory data analysis</h4>
+<h2>Trace element geochemistry in acidified estuarine dredge spoil 
+and associated sulfidic drain sediments, South Yunderup, Western Australia</h2>
+<p>Nian Xu, PhD Paper 4 <br>
+<em>UWA School of Agriculture and Environment</em></p>
+<hr size=2 col="#003366">
+<p><em>First</em>: Prepare centered-logratio-transformed data, run a <strong>principal components analysis (PCA)</strong>, 
+and plot the scree plot below:</p>
+```{r prepare clr-transformed data and run principal components analysis, fig.height=3.5, fig.width=5}
+nx.clr.noNA <- na.omit(cbind(nx.clr[c("Type.S3","As","Ba","Cd","Co","Cr","Cu","Fe",
+                                      "Mn","Mo","Ni","P","Pb","Rb","S","Sr","Th","Ti",
+                                      "U","V","Zn","REE")]))
+PC.nx.clr<-prcomp(~As +Ba +Cd +Co +Cr +Cu +Fe +Mn
+  +Mo +Ni +P +Pb +Rb +S +Sr +Th +Ti +U +V +Zn +REE, 
+  scale.=T, data=nx.clr.noNA) # 
+# plot(PC.nx.clr)
+# not using default scree plot, this is better :^)
+par(mar=c(3,3,2,2),mgp=c(2,.6,0),font.lab=2,family='sans')
+barplot(PC.nx.clr$sdev[1:10]^2, names.arg=seq(1,10,1),ylim=c(0,12.5), 
+        xlab="Component number", ylab="Variances", col="powderblue")
+abline(h=seq(1,12,1), lty=2, col="grey92")
+box()
+```
+#
+<hr size=2 col="#003366">
+<p><em>Next</em>: Plot an initial (default) biplot below:</p>
+```{r default biplot, fig.height=5, fig.width=5}
+biplot(PC.nx.clr, choices=c(1,2), col=c("black","red3"),
+       cex=c(0.85,0.7), font.lab=2, cex.lab=1., arrow.len = 0.1)
+```
+
+<hr size=2 col="#003366">
+<p><strong><em>Next</em>: Numerical output for PCA</strong>:</p>
+```{r Numerical output for PCA}
+cat("\n======== summary of [cumulative] variance explained for all components ========\n")
+summary(PC.nx.clr)
+cat("\n======== the first eight (8) variances = eigenvalues of components ========\n")
+PC.nx.clr$sdev[1:8]^2 # first eight (8) eigenvalues
+cat("\n======== observation scores for principal components PC1-PC5 ========\n")
+PC.nx.clr$x[,1:5]
+cat("\n======== component loadings for principal components PC1-PC5 ========\n")
+PC.nx.clr$rotation[,1:5]
+```
+<hr size=2 col="#003366">
+<p><strong><em>Next</em>: Plot a better principal components biplot, showing grouping of observations in PC1-PC2 space</strong>:</p>
+```{r a better principal components biplot}
+windowsFonts(nar = windowsFont("Ubuntu Condensed"))
+par(mfrow=c(1,1), mar=c(3.5,3.5,3.5,3.5), oma=c(0,0,0,0), mgp=c(2.,0.7,0), lend=2, ljoin=1, font.lab=2)
+#
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,1.0),
+       cex.lab=1.,cex.axis=1., expand=1., xlab="Component Loadings, PC1 (55.5% of variance)",
+       ylab="Component Loadings, PC2 (11.9% of variance)", xlim=c(-0.25,0.25), ylim=c(-0.18,0.18), family="nar") # , font.lab=2
+abline(v=0, lty=2, col="grey85")
+abline(h=0, lty=2, col="grey85")
+mtext(side=3, line=2., text="Observation scores, PC1",font=2, family='nar', cex=1.)
+mtext(side=4, line=2., text="Observation scores, PC2",font=2, family='nar', cex=1.)
+sf0 <- 0.9
+points(PC.nx.clr$x[,1]*sf0, PC.nx.clr$x[,2]*sf0, pch=c(17,1,10)[nx.clr.noNA$Type.S3],
+       col=c("firebrick","#226422","darkgoldenrod")[nx.clr.noNA$Type.S3], cex=1.2, 
+       lwd=c(2,3,2)[nx.clr.noNA$Type.S3])
+legend("topleft", ncol=1, legend=levels(nx.clr.noNA$Type.S3),
+       pch=c(17,1,10), col=c("firebrick","#226422","darkgoldenrod"), cex=0.8, pt.cex=1.2, 
+       pt.lwd=c(2,3,2), bty="o", box.col="grey", inset=0.01, y.intersp=0.9) # , title=expression(bold("Type"))
+rm(sf0)
+box()
+```
+<hr size=2 col="#003366">
+<p><em>Next</em>: Run a <strong><em>stepwise</em> linear discriminant analysis using the principal components as predictors</strong>:<br>
+(only using the principal components having:</p> 
+<ol><li>eigenvalues > 1</li>
+<li>explaining up to 80% of cumulative variance</li>
+<li>indivudually explaining >1/<em>n</em> of variance where <em>n</em> is number of predictors (in this case, principal components))</li>
+</ol>
+```{r run stewise lda on principal components }
+require(MASS)
+require(klaR)
+pc2ld <- as.data.frame(cbind(nx.clr.noNA$Type.S3,PC.nx.clr$x))
+names(pc2ld)[1] <- "Type.S3"
+# options [for criterion=c("CR","AC","AS","CF","CFvec")]
+stepwise.lda <- stepclass(formula = Type.S3~PC1+ PC2+ PC3+ PC4+ PC5, data=pc2ld, 
+                          prior=rep(1,nlevels(nx.clr$Type.S3))/nlevels(nx.clr$Type.S3), 
+                          method="lda", improvement=0.05, direction="both", criterion="CR")
+stepwise.lda
+########## calculate 'observation scores' for training data ##########
+lda.PCA.nx.clr.values <- predict(lda.PCA.nx.clr, 
+                             pc2ld[c("PC1", "PC2", "PC3","PC4", "PC5")], na.rm=T)
+#
+```
+<hr size=2 col="#003366">
+<p><em>Next</em>: <strong>Use output of Stepwise LDA model to run final LDA model</strong>:</p>
+```{r output of Stepwise LDA model to run final LDA model}
+pc2ld <- as.data.frame(cbind(nx.clr.noNA$Type.S3,PC.nx.clr$x))
+names(pc2ld)[1] <- "Type.S3"
+lda.PCA.nx.clr <- lda(formula = Type.S3~PC1+ PC3, data=pc2ld,
+                      prior=rep(1,nlevels(nx.clr.noNA$Type.S3))/nlevels(nx.clr.noNA$Type.S3))
+prop = 100*lda.PCA.nx.clr$svd^2/sum(lda.PCA.nx.clr$svd^2)
+cat("\n======== Summary of final Linear Discriminant Analyis (LDA) model ========\n")
+lda.PCA.nx.clr
+cat("\n======== Summary of variance explained by Linear Discriminants in final model ========\n")
+{cat("Discriminant 1 explains",signif(prop[1],3),"% of between groups variance\n")
+  cat("Discriminant 2 explains",signif(prop[2],3),"% of between groups variance\n")}
+```
+<hr size=2 col="#003366">
+<p><em>Next</em>: <strong>Set of two LDA plots</strong></p>
+```{r plot LDA predictor weightings and observation scores, fig.height=5, fig.width=10}
+# dev.new(width=13.6, height=7.0)
+par(mfrow=c(1,2),mar=c(4,4,2,1),lend=2,ljoin=1,font.lab=2,cex.main=.7, mgp=c(1.8,0.6,0), family="sans")
+# PLOT VARIABLE WEIGHTINGS
+plot(lda.PCA.nx.clr$scaling[,1],lda.PCA.nx.clr$scaling[,2],col="skyblue4",pch=18,lwd=1,cex=1.,
+     cex.lab=1., cex.axis=1., xlab="Linear Discriminant [1]", 
+     ylab="Linear Discriminant [2]", xlim=c(-1,1), ylim=c(-1,1), 
+     main="(a) Variable Coefficients, data = pc2ld, CLR-transformed", family="nar") #  
+mtext(text="(a)", cex=1., side=3, line=-1.2,adj=0.03, family="sans")
+abline(v=0,col="grey",lty=2)
+abline(h=0,col="grey",lty=2)
+palette(colors())
+text(lda.PCA.nx.clr$scaling[,1],lda.PCA.nx.clr$scaling[,2],labels=rownames(lda.PCA.nx.clr$scaling),pos=4, 
+     cex=1., family="nar")
+legend("topright",legend=c("Variables"), bty="o", pch=c(18), col=c("skyblue4"), cex=1., 
+       pt.cex=1., inset=0.01, box.col="grey90", bg="white", box.lwd=2, y.intersp=0.7)
+# _____________________________________
+# PLOT TRAINING DATA OBSERVATION SCORES 
+palette(c("firebrick","#006699","saddlebrown"))
+plot(lda.PCA.nx.clr.values$x[,1], lda.PCA.nx.clr.values$x[,2], 
+     col=c(1,2,3)[lda.PCA.nx.clr.values$class],
+     pch=c(1,15,0)[lda.PCA.nx.clr.values$class], lwd=c(2,1,2)[lda.PCA.nx.clr.values$class],
+     cex=c(1.2,1.1,1.)[lda.PCA.nx.clr.values$class],cex.axis=1., cex.lab=1., 
+     xlab="Linear Discriminant [1]", ylab="Linear Discriminant [2]",
+     main="(b) Coordinates of obs., data = pc2ld, CLR-transformed", family="nar")
+mtext(text="(b)", cex=1., side=3, line=-1.2,adj=0.02, family="sans")
+abline(v=0,col="grey",lty=2)
+abline(h=0,col="grey",lty=2)
+legend("topright",legend=levels(nx.clr.noNA$Type.S3), col=c(1,2,3), pch=c(1,15,0),
+       pt.lwd=c(2,1,2), title=expression(italic("Sample type")), bty="o", box.col="grey90", 
+       box.lwd=2, inset=0.01, pt.cex=c(1.2,1.1,1), cex=0.8, 
+       text.col=c(1,2,3), title.col="black", y.intersp=0.85, bg="white")
+```
+<hr size=2 col="#003366">
+<p><em>Next</em>: <strong>Plot 'better' principal components biplots, based on <u>best 2-predictor LDA model (PC1-PC3)</u>, 
+showing grouping of observations in PC1-PC2 space and in PC1-PC3 space.</strong></p>
+```{r final principal components biplots, fig.height=5.5, fig.width=11}
+windowsFonts(nar = windowsFont("Ubuntu Condensed"))
+par(mfrow=c(1,2), mar=c(3.5,3.5,3.5,3.5), oma=c(0,0,0,0), mgp=c(1.8,0.5,0), lend=2, ljoin=1, 
+    font.lab=2, family='nar')
+#
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,1.0),
+       cex.lab=0.9,cex.axis=1., expand=1., xlab="PC1 Loadings (55.5% of variance)",
+       ylab="PC2 Loadings (11.9% of variance)", xlim=c(-0.25,0.25), ylim=c(-0.18,0.18), family="nar") # , font.lab=2
+abline(v=0, lty=2, col="grey85")
+abline(h=0, lty=2, col="grey85")
+mtext(side=3, line=2.5, text="(a) PC1 vs. PC2",font=2, family='nar', cex=0.9, col="blue3", family='serif')
+mtext(side=3, line=1.5, text="Observation scores, PC1",font=2, family='nar', cex=0.9)
+mtext(side=4, line=1.5, text="Observation scores, PC2",font=2, family='nar', cex=0.9)
+sf0 <- 1.0
+points(PC.nx.clr$x[,1]*sf0, PC.nx.clr$x[,2]*sf0, pch=c(17,1,10)[nx.clr.noNA$Type.S3],
+       col=c("firebrick","#226422","darkgoldenrod")[nx.clr.noNA$Type.S3], cex=1.2, 
+       lwd=c(2,3,2)[nx.clr.noNA$Type.S3])
+legend("topleft", ncol=1, legend=levels(nx.clr.noNA$Type.S3),
+       pch=c(17,1,10), col=c("firebrick","#226422","darkgoldenrod"), cex=0.67, pt.cex=1.2, 
+       pt.lwd=c(2,3,2), bty="o", box.col="grey", inset=0.01, y.intersp=0.9) # , title=expression(bold("Type"))
+rm(sf0)
+box()
+# ========================
+biplot(PC.nx.clr, choices=c(1,3), col=c("transparent","black"), cex=c(0.2,1.0),
+       cex.lab=.9,cex.axis=1., expand=1., xlab="PC1 Loadings (55.5% of variance)",
+       ylab="PC3 Loadings (7.3% of variance)", xlim=c(-0.25,0.25), ylim=c(-0.18,0.18), family="nar") # , font.lab=2
+abline(v=0, lty=2, col="grey85")
+abline(h=0, lty=2, col="grey85")
+lines(c(0,0),c(0,-2.95))
+mtext(side=3, line=2.5, text="(b) PC1 vs. PC3",font=2, family='nar', cex=0.9, col="red3", family='serif')
+mtext(side=3, line=1.5, text="Observation scores, PC1",font=2, family='nar', cex=0.9)
+mtext(side=4, line=1.5, text="Observation scores, PC3",font=2, family='nar', cex=0.9)
+sf0 <- 1.0
+points(PC.nx.clr$x[,1]*sf0, PC.nx.clr$x[,3]*sf0, pch=c(17,1,10)[nx.clr.noNA$Type.S3],
+       col=c("firebrick","#226422","darkgoldenrod")[nx.clr.noNA$Type.S3], cex=1.2, 
+       lwd=c(2,3,2)[nx.clr.noNA$Type.S3])
+legend("topright", ncol=1, legend=levels(nx.clr.noNA$Type.S3),
+       pch=c(17,1,10), col=c("firebrick","#226422","darkgoldenrod"), cex=0.7, pt.cex=1.2, 
+       pt.lwd=c(2,3,2), bty="o", box.col="grey", inset=0.01, y.intersp=0.85) # , title=expression(bold("Type"))
+rm(sf0)
+box()
+```
+
+<hr size=2 col="#003366">
+<h3>Notes</h3>
+<p>It seems as though the LDA analysis using the Principal Components as predictors is too abstracted from the
+original data to be useful for classification. The LDA is useful, however, to identify the best separation of 
+sample types (in this case) available from a combination of two Principal Components. All possible combinations 
+of stepwise LDA (step direction x improvement tolerance x improvement criterion) were run using the first five 
+(5) principal components (chosen using the Kaiser crtieria). Following this, the only two-predictor LDA models 
+that were returned contained PC1 and PC3. There is good separation between groups in the PC1 <i>vs</i>. PC3 biplot, 
+except for two points from core 3.</p>
+<p><strong>Just becasue PC3 vs. PC1 has the best separation doesn't mean that PC2 should be ignored</strong> - PC2 still captures more multivariance than PC3, so contains useful information.</p>
+<p>Some of the Core 3 samples may not be truly 'oxidised', so it is possible that a reclassification of samples would help to 
+understand or enhance the PCA analysis? I was wondering if we should plot this with a different categorization of observations 
+anyway, <i>e.g</i>. for the sediment in the biplot there appear to be 2 sub-groups which may be shallow & deep???</p>
+<hr size=2 col="#003366">
+

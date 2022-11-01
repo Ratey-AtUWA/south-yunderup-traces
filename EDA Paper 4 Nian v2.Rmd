@@ -1,0 +1,82 @@
+---
+title: "Nian Paper_4 EDA"
+output: html_notebook
+---
+
+Show the variables; CLR-transformed variables in columns [44:64]
+```{r}
+windowsFonts(nar = windowsFont("Ubuntu Condensed"))
+nx.clr <- 
+  read.csv("C:/Users/00028958/Documents/Postgraduate/2013.PhD Xu Nian/XuNian data/Paper_4/Trace elements-OES-MS-pH.clr.csv")
+names(nx.clr)
+```
+
+Run a Pearson correlation matrix on the centred-logratio transformed concentrations,
+including all possible observations (use="pairwise.complete.obs")
+
+```{r}
+require(RcmdrMisc)
+# pearson correlation matrix ####
+rcorr.adjust(nx.clr[44:64], type = "pearson", use="pairwise.complete.obs")
+```
+
+
+Run a principal components analysis on the clr-transformed data, and plot the results in the next chunk
+```{r}
+PC.nx.clr<-prcomp(~As +Ba +Cd +Co +Cr +Cu +Fe +Mn
+  +Mo +Ni +P +Pb +Rb +S +Sr +Th +Ti +U +V +Zn +REE, 
+  scale=T, data=nx.clr) # , cor=TRUE
+PC.nx.clr$x[,1:5]
+PC.nx.clr$rotation[,1:5]
+summary(PC.nx.clr)
+PC.nx.clr$sdev[1:8]^2 # first eight (8) eigenvalues
+```
+
+Plot the scree plot
+```{r}
+plot(PC.nx.clr)
+
+```
+
+Plotting the PCA data by Type
+```{r}
+par(mfrow=c(1,2), mar=c(5,4,2,1), mgp=c(2.2,0.7,0), oma=c(0,0,0,0), lend=2, ljoin=1, font.lab=2, family="nar")
+#
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,0.85),
+       cex.lab=1.2,cex.axis=1., expand=1., xlab="PC1 (55.5% of variance)",
+       ylab="PC2 (11.9% of variance)", xlim=c(-0.3,0.3), ylim=c(-0.2,0.2)) # , font.lab=2
+sf0 <- 1
+points(PC.nx.clr$x[,1]*sf0,PC.nx.clr$x[,2]*sf0,pch=c(3,1)[nx.clr$Type],
+       col=c("sienna","seagreen")[nx.clr$Type], cex=c(0.8,1.0)[nx.clr$Type], lwd=c(2,2)[nx.clr$Type])
+# dummy plot for legend
+plot(c(0,1),c(0,1), ann = F, xaxt="n", yaxt="n", type="n", family="nar")
+legend("left", ncol=1, legend=levels(nx.clr$Type),
+       pch=c(3,1), col=c("sienna","seagreen"), cex=1., pt.cex=c(0.8,1.0), pt.lwd=c(2,2),
+       bty="o", box.col="grey", inset=0.005, y.intersp=0.95, title=expression(bold("Type"))) ### 
+rm(sf0)
+box(col="white", lwd=3)
+```
+Plotting the PCA results, grouping observations by redox
+```{r}
+par(mfrow=c(1,2), mar=c(5,4,2,1), mgp=c(2.2,0.7,0), oma=c(0,0,0,0), lend=2, ljoin=1, font.lab=2, family="nar")
+#
+biplot(PC.nx.clr, choices=c(1,2), col=c("transparent","black"), cex=c(0.2,0.85),
+       cex.lab=1.2,cex.axis=1., expand=1., xlab="PC1 (55.5% of variance)",
+       ylab="PC2 (11.9% of variance)", xlim=c(-0.3,0.3), ylim=c(-0.2,0.2)) # , font.lab=2
+sf0 <- 1
+points(PC.nx.clr$x[,1]*sf0,PC.nx.clr$x[,2]*sf0,pch=c(4,0)[nx.clr$Redox],
+       col=c("tan3","cornflowerblue")[nx.clr$Redox], cex=c(1.,1.)[nx.clr$Redox], lwd=c(2,2)[nx.clr$Redox])
+# dummy plot for legend
+plot(c(0,1),c(0,1), ann = F, xaxt="n", yaxt="n", type="n", family="nar")
+legend("left", ncol=1, legend=levels(nx.clr$Redox),
+       pch=c(4,0), col=c("tan3","cornflowerblue"), cex=1., pt.cex=c(1.0,1.0), pt.lwd=c(2,2),
+       bty="o", box.col="grey", inset=0.005, y.intersp=0.95, title=expression(bold("Redox"))) ### 
+rm(sf0)
+box(col="white", lwd=3)
+```
+Scatter plot matrix on clr-transformed elements
+```{r}
+require(car)
+spm(nx.clr[,43:63], smooth=F, span=F)
+```
+

@@ -1,0 +1,20 @@
+attach(br17)
+mregCu <- lm(Cu.pctex.pow~pH + EC + CEC + Cu.t.2016.pow, data=br17)
+summary(mregCu)
+library(effects, pos=20)
+plot(allEffects(mregCu))
+oldpar <- par(oma=c(0,0,3,0), mfrow=c(2,2))
+plot(mregCu)
+par(oldpar)
+crPlots(mregCu, span=0.5)
+avPlots(mregCu, id.method="mahal", id.n=2)
+influencePlot(mregCu, id.method="noteworthy", id.n=2)
+outlierTest(mregCu)
+library(zoo, pos=21)
+library(lmtest, pos=21)
+dwtest(Cu.pctex.pow ~ pH + EC + CEC + Cu.t.2016.pow, 
+  alternative="two.sided", data=br17)
+resettest(Cu.pctex.pow ~ pH + EC + CEC + Cu.t.2016.pow, 
+  power=2:3, type="regressor", data=br17)
+Confint(mregCu, level=0.95)
+
